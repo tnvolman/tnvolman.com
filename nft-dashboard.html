@@ -250,9 +250,51 @@ footer {
 }
 #tooltip.show { opacity: 1; }
 
+
+/* PASSWORD GATE */
+#gate{position:fixed;inset:0;z-index:9999;background:#07070f;display:flex;align-items:center;justify-content:center;}
+#gate.unlocked{opacity:0;pointer-events:none;transition:opacity .7s ease}
+.gate-box{background:rgba(13,13,26,.98);border:1px solid #252540;border-radius:18px;padding:42px 46px;width:min(420px,90vw);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.8);}
+.gate-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#C9A84C,#8B5E1A);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 18px;}
+.gate-eyebrow{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;font-weight:700;margin-bottom:5px}
+.gate-title{font-size:22px;font-weight:900;letter-spacing:-.4px;color:#f5f5f5;margin-bottom:4px}
+.gate-sub{font-size:11px;color:#44445a;margin-bottom:30px;line-height:1.65}
+.gate-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#44445a;font-weight:700;text-align:left;margin-bottom:8px}
+.gate-wrap{position:relative;margin-bottom:6px}
+#gate-input{width:100%;background:rgba(255,255,255,.04);border:1px solid #252540;border-radius:10px;padding:13px 44px 13px 16px;font-size:14px;color:#e8e8f2;font-family:'JetBrains Mono',monospace;outline:none;letter-spacing:2px;transition:border-color .15s;}
+#gate-input:focus{border-color:#C9A84C}
+#gate-input.shake{border-color:#e63946;animation:shake .35s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+#gate-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:#44445a;cursor:pointer;font-size:15px;transition:color .12s;}
+#gate-eye:hover{color:#7777aa}
+#gate-err{font-size:11px;color:#e63946;min-height:18px;margin-bottom:14px;text-align:left;padding-left:2px}
+#gate-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,#C9A84C,#8B5E1A);color:#07070f;font-size:13px;font-weight:800;font-family:'Inter',sans-serif;letter-spacing:.5px;transition:opacity .15s,transform .1s;}
+#gate-btn:hover{opacity:.86}
+#gate-btn:active{transform:scale(.98)}
+.gate-note{font-size:9px;color:#22223a;margin-top:18px;line-height:1.6}
+
 </style>
 </head>
 <body>
+
+<!-- PASSWORD GATE -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="gate-icon">&#9889;</div>
+    <div class="gate-eyebrow">The Forge Intelligence</div>
+    <div class="gate-title">NFT Intelligence Dashboard</div>
+    <div class="gate-sub">Trump Digital Assets &middot; Restricted Access<br>Enter your access key to continue</div>
+    <div class="gate-lbl">Access Key</div>
+    <div class="gate-wrap">
+      <input id="gate-input" type="password" placeholder="Enter access key" autocomplete="off" />
+      <button id="gate-eye" type="button" title="Show/hide">&#128065;</button>
+    </div>
+    <div id="gate-err"></div>
+    <button id="gate-btn">Unlock</button>
+    <div class="gate-note">The Forge Intelligence &middot; Independent informational visualization<br>Not affiliated with, endorsed by, or connected to any entity depicted.</div>
+  </div>
+</div>
+
 <div class="shell">
 
 <!-- HEADER -->
@@ -1184,6 +1226,45 @@ function renderAll() {
 
 window.addEventListener('load', renderAll);
 window.addEventListener('resize', renderAll);
+</script>
+<script>
+
+// PASSWORD GATE
+(function(){
+  var PW = "3mp1r3N0d347!";
+  var gate = document.getElementById("gate");
+  var inp  = document.getElementById("gate-input");
+  var btn  = document.getElementById("gate-btn");
+  var err  = document.getElementById("gate-err");
+  var eye  = document.getElementById("gate-eye");
+
+  if(sessionStorage.getItem("forge_nft_auth")==="1"){
+    gate.classList.add("unlocked");
+    setTimeout(function(){ gate.style.display="none"; }, 800);
+  }
+
+  function tryUnlock(){
+    if(inp.value===PW){
+      sessionStorage.setItem("forge_nft_auth","1");
+      gate.classList.add("unlocked");
+      setTimeout(function(){ gate.style.display="none"; }, 800);
+    } else {
+      err.textContent="Incorrect access key. Please try again.";
+      inp.classList.add("shake");
+      inp.value="";
+      setTimeout(function(){ inp.classList.remove("shake"); }, 400);
+    }
+  }
+
+  btn.addEventListener("click", tryUnlock);
+  inp.addEventListener("keydown", function(e){ if(e.key==="Enter") tryUnlock(); });
+  eye.addEventListener("click", function(){
+    inp.type = inp.type==="password" ? "text" : "password";
+    eye.textContent = inp.type==="password" ? "Show" : "Hide";
+  });
+  setTimeout(function(){ inp.focus(); }, 150);
+})();
+
 </script>
 </body>
 </html>
