@@ -1,0 +1,9 @@
+{
+  "name": "STRIKE",
+  "short_name": "STRIKE",
+  "description": "One page. Five lanes. Three strikes.",
+  "start_url": "/strike/",
+  "display": "standalone",
+  "background_color": "#0c0b0a",
+  "theme_color": "#0c0b0a"
+}
