@@ -2,6 +2,8 @@
   const PIN_KEY = "strike-lock-pin";
   const PK_KEY = "strike-lock-pk";
   const OPEN_KEY = "strike-open";
+  const INVITE_KEY = "octane-invited";
+  const INVITE_HASH = "87e8d1bece822a4c61015125621df408a8337b8459a637c1245c131ec09df849";
   const $ = (id) => document.getElementById(id);
   const lock = $("lock");
   const board = $("board");
@@ -9,22 +11,28 @@
   const err = $("lock-err");
   const dots = $("lock-dots");
   const pad = $("lock-pad");
+  const code = $("lock-code");
+  const btnInvite = $("btn-invite");
   const btnFace = $("btn-face");
   const btnPin = $("btn-use-pin");
   const btnSkip = $("btn-skip-face");
 
-  let mode = "setup";
+  let mode = "invite";
   let pin = "";
   let pending = "";
 
   function hasPin() { return Boolean(localStorage.getItem(PIN_KEY)); }
   function hasPk() { return Boolean(localStorage.getItem(PK_KEY)); }
-  function canFace() {
-    return Boolean(window.PublicKeyCredential);
-  }
+  function invited() { return localStorage.getItem(INVITE_KEY) === "1"; }
+  function canFace() { return Boolean(window.PublicKeyCredential); }
+  function norm(s) { return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
 
   async function shaPin(value) {
     const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("strike|" + value));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function shaInvite(value) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("octane|" + norm(value)));
     return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
   }
   function b64(buf) {
@@ -53,15 +61,18 @@
     paintDots();
     showErr("");
     msg.textContent = text;
-    const needPad = next === "setup" || next === "confirm" || next === "unlock";
-    pad.hidden = !needPad;
-    btnFace.hidden = next !== "face";
+    const pinMode = next === "setup" || next === "confirm" || next === "unlock";
+    const inviteMode = next === "invite";
+    dots.hidden = inviteMode;
+    pad.hidden = !pinMode;
+    code.hidden = !inviteMode;
+    btnInvite.hidden = !inviteMode;
+    btnFace.hidden = next !== "face" && next !== "offer";
     btnPin.hidden = next !== "face";
     btnSkip.hidden = next !== "offer";
-    if (next === "offer") {
-      pad.hidden = true;
-      btnFace.hidden = false;
-      btnSkip.hidden = false;
+    if (inviteMode) {
+      code.value = "";
+      setTimeout(() => code.focus(), 50);
     }
   }
 
@@ -77,8 +88,8 @@
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge: crypto.getRandomValues(new Uint8Array(32)),
-        rp: { name: "STRIKE", id: location.hostname },
-        user: { id: userId, name: "strike", displayName: "STRIKE" },
+        rp: { name: "OCTANE", id: location.hostname },
+        user: { id: userId, name: "octane", displayName: "OCTANE" },
         pubKeyCredParams: [
           { type: "public-key", alg: -7 },
           { type: "public-key", alg: -257 },
@@ -107,6 +118,32 @@
       },
     });
     return Boolean(assertion);
+  }
+
+  async function checkInvite() {
+    const hash = await shaInvite(code.value);
+    if (hash !== INVITE_HASH) {
+      showErr("Not invited");
+      code.value = "";
+      code.focus();
+      return;
+    }
+    localStorage.setItem(INVITE_KEY, "1");
+    afterInvite();
+  }
+
+  function afterInvite() {
+    if (!hasPin()) {
+      setMode("setup", "Set a 4-digit PIN");
+      return;
+    }
+    if (hasPk() && canFace()) {
+      setMode("face", "Look at the phone");
+      btnFace.textContent = "Face ID";
+      askFace().then((ok) => { if (ok) openBoard(); }).catch(() => setMode("unlock", "Enter your PIN"));
+      return;
+    }
+    setMode("unlock", "Enter your PIN");
   }
 
   async function finishPin() {
@@ -150,23 +187,31 @@
     if (pin.length === 4) finishPin();
   }
 
-  pad.innerHTML = ["1","2","3","4","5","6","7","8","9","", "0", "⌫"].map((k) => {
+  pad.innerHTML = ["1","2","3","4","5","6","7","8","9","", "0", "\u232b"].map((k) => {
     if (k === "") return "<span></span>";
-    const label = k === "⌫" ? "Delete" : k;
-    return `<button type="button" data-k="${k}" aria-label="${label}">${k}</button>`;
+    const label = k === "\u232b" ? "Delete" : k;
+    return `<button type=\"button\" data-k=\"${k}\" aria-label=\"${label}\">${k}</button>`;
   }).join("");
 
   pad.addEventListener("click", (e) => {
     const btn = e.target.closest("button");
     if (!btn) return;
     const k = btn.dataset.k;
-    if (k === "⌫") {
+    if (k === "\u232b") {
       pin = pin.slice(0, -1);
       paintDots();
       showErr("");
       return;
     }
     digit(k);
+  });
+
+  btnInvite.addEventListener("click", () => checkInvite());
+  code.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      checkInvite();
+    }
   });
 
   btnFace.addEventListener("click", async () => {
@@ -200,28 +245,15 @@
   });
 
   async function start() {
+    if (!invited()) {
+      setMode("invite", "Invite code");
+      return;
+    }
     if (sessionStorage.getItem(OPEN_KEY) === "1" && hasPin()) {
       openBoard();
       return;
     }
-    if (!hasPin()) {
-      setMode("setup", "Set a 4-digit PIN");
-      return;
-    }
-    if (hasPk() && canFace()) {
-      setMode("face", "Look at the phone");
-      btnFace.textContent = "Face ID";
-      try {
-        if (await askFace()) {
-          openBoard();
-          return;
-        }
-      } catch (e) {
-        setMode("unlock", "Enter your PIN");
-      }
-      return;
-    }
-    setMode("unlock", "Enter your PIN");
+    afterInvite();
   }
 
   start();
