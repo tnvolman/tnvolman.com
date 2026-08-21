@@ -1,7 +1,7 @@
 {
-  "name": "STRIKE",
-  "short_name": "STRIKE",
-  "description": "One page. Five lanes. Three strikes.",
+  "name": "OCTANE",
+  "short_name": "OCTANE",
+  "description": "High octane. Five lanes. Three hits.",
   "start_url": "/strike/",
   "display": "standalone",
   "background_color": "#0c0b0a",
