@@ -87,6 +87,19 @@
     .lane-pick { width: 100%; display: flex; align-items: center; gap: .75rem; padding: .7rem .75rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: .4rem; min-height: 2.75rem; }
     .lane-pick.on { border-color: var(--accent); background: var(--elevated); }
     .toast { position: fixed; bottom: 1.25rem; left: 50%; transform: translateX(-50%); background: var(--elevated); color: var(--fg); border: 1px solid var(--border); padding: .6rem 1rem; border-radius: 8px; font-size: .875rem; z-index: 80; display: none; }
+    #lock { position: fixed; inset: 0; z-index: 90; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1.25rem 3rem; text-align: center; }
+    #lock[hidden] { display: none; }
+    #board[hidden] { display: none; }
+    #lock h1 { margin-top: .35rem; }
+    .dots { display: flex; gap: .75rem; margin: 1.5rem 0 1rem; }
+    .dots span { width: 12px; height: 12px; border-radius: 999px; border: 1px solid var(--accent); background: transparent; }
+    .dots span.on { background: var(--accent); }
+    .dots.bad span { border-color: var(--heat); background: transparent; }
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; width: min(19rem, 100%); margin-top: .5rem; }
+    .keypad button { height: 3.5rem; border-radius: 12px; background: var(--elevated); border: 1px solid var(--border); font-size: 1.25rem; font-weight: 500; }
+    .keypad button:hover { color: var(--fg); background: var(--surface); }
+    #btn-face { margin-top: 1.25rem; min-width: 14rem; }
+    #lock .quiet { margin-top: .5rem; }
     @media print {
       @page { size: letter; margin: .55in; }
       html, body { background: #f6f1e8 !important; color: #1a1714 !important; }
@@ -95,7 +108,20 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div id="lock">
+    <p class="kicker">Private</p>
+    <h1>STRIKE</h1>
+    <p class="muted" id="lock-msg">Set a 4-digit PIN</p>
+    <div class="dots" id="lock-dots" aria-hidden="true">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <p class="subtle" id="lock-err" hidden></p>
+    <button class="solid" id="btn-face" hidden>Face ID</button>
+    <div class="keypad" id="lock-pad"></div>
+    <button class="quiet" id="btn-use-pin" hidden>Use PIN</button>
+    <button class="quiet" id="btn-skip-face" hidden>Skip Face ID</button>
+  </div>
+  <div class="wrap" id="board" hidden>
     <div class="grain"></div>
     <header>
       <div class="row">
@@ -110,6 +136,7 @@
           <div class="menu" id="menu" hidden>
             <button id="btn-new">Start a new 30</button>
             <button id="btn-seed">Restore seed</button>
+            <button id="btn-lock">Lock</button>
           </div>
         </div>
       </div>
@@ -149,6 +176,7 @@
   <div class="overlay" id="overlay"></div>
   <div class="sheet" id="sheet" hidden></div>
   <div class="toast" id="toast"></div>
-  <script src="./app.js?v=2"></script>
+  <script src="./app.js?v=3"></script>
+  <script src="./lock.js?v=1"></script>
 </body>
 </html>
